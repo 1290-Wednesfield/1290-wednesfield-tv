@@ -356,6 +356,18 @@
 <footer>
     1290 Wednesfield Squadron • RAF Air Cadets
 </footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script>
+    const SUPABASE_URL = 'https://apisberzeduryyuuqujy.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_RxEe8mmPIo6ZbyGVuRA45Q_zkWflvDx';
+
+    const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+
+    console.log('1290 TV: Supabase connected');
+</script>
 </body>
 </html>
