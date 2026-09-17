@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1290 Wednesfield — TV Control Centre</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#071b33;color:#fff;font-family:Arial,Helvetica,sans-serif;min-height:100vh}
+header{background:#fff;color:#071b33;padding:20px 35px;border-bottom:6px solid #f5c400;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand h1{font-size:28px;text-transform:uppercase}.brand p{margin-top:4px;font-size:14px;font-weight:bold;color:#555}
+.status{background:#e8f7ed;color:#16753b;border:1px solid #86d49e;padding:10px 18px;border-radius:6px;font-weight:bold}
+.userbar{display:none;align-items:center;gap:12px;font-size:13px}.userbar button{background:#071b33;color:#fff;border:0;padding:8px 12px;border-radius:5px;cursor:pointer}
+main{max-width:1400px;margin:0 auto;padding:35px}.welcome{margin-bottom:30px}.welcome h2{font-size:42px;margin-bottom:8px}.welcome p{color:#b8c7d9;font-size:18px}
+.tonight{background:#fff;color:#071b33;padding:25px;border-left:8px solid #f5c400;margin-bottom:30px}.tonight h3{font-size:25px;margin-bottom:18px}
+.tonight-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.info{background:#edf2f7;padding:15px;border-radius:5px}
+.info strong{display:block;font-size:13px;text-transform:uppercase;color:#607086;margin-bottom:7px}.info span{font-size:18px;font-weight:bold}
+.section-title{font-size:25px;margin-bottom:18px}.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.tool{background:#102b4a;border:1px solid #284866;padding:25px;min-height:150px;cursor:pointer;transition:.2s}.tool:hover{transform:translateY(-3px);border-color:#f5c400}
+.tool .icon{font-size:32px;margin-bottom:12px}.tool h3{font-size:20px;margin-bottom:7px}.tool p{color:#b8c7d9;line-height:1.4}
+.checks{margin-top:35px;background:#102b4a;border:1px solid #284866;padding:25px}.checks h3{font-size:24px;margin-bottom:18px}
+.check-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #284866}.check-row:last-child{border-bottom:none}.ready{color:#64d98a;font-weight:bold}.waiting{color:#f5c400;font-weight:bold}
+.panel{display:none;background:#fff;color:#071b33;margin-top:30px;padding:28px;border-left:8px solid #f5c400}.panel.active{display:block}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:15px}.panel h2{font-size:28px}
+.btn{border:0;border-radius:5px;padding:11px 16px;font-weight:bold;cursor:pointer}.btn-primary{background:#f5c400;color:#071b33}.btn-dark{background:#071b33;color:#fff}.btn-danger{background:#b3261e;color:#fff}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}.field label{display:block;font-size:13px;font-weight:bold;text-transform:uppercase;color:#607086;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:11px;border:1px solid #c9d2dc;border-radius:5px;font:inherit}.field textarea{min-height:80px;resize:vertical}.full{grid-column:1/-1}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.message{padding:11px 14px;background:#edf2f7;border-radius:5px;margin:15px 0;display:none}.message.show{display:block}.message.error{color:#a51d18;background:#fdecea}
+.training-table{width:100%;border-collapse:collapse;margin-top:20px}.training-table th,.training-table td{padding:11px;border-bottom:1px solid #d8e0e8;text-align:left;vertical-align:top}.training-table th{font-size:12px;text-transform:uppercase;color:#607086}.empty{text-align:center;padding:25px;color:#607086}
+.login-overlay{position:fixed;inset:0;background:rgba(7,27,51,.97);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20}
+.login-card{background:#fff;color:#071b33;width:min(440px,100%);padding:32px;border-top:7px solid #f5c400;border-radius:4px}.login-card h2{margin-bottom:8px}.login-card p{color:#607086;margin-bottom:22px;line-height:1.4}.login-card .field{margin-bottom:14px}
+footer{text-align:center;color:#8295aa;padding:35px;font-size:13px}
+@media(max-width:900px){.tonight-grid,.tools{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.tonight-grid,.tools,.form-grid{grid-template-columns:1fr}.full{grid-column:auto}main{padding:20px}header{padding:15px 20px;flex-wrap:wrap}.welcome h2{font-size:30px}.training-table{font-size:13px;display:block;overflow-x:auto}}
+</style>
+</head>
+<body>
+
+<div id="loginOverlay" class="login-overlay">
+<div class="login-card">
+<h2>1290 TV Control Centre</h2>
+<p>Staff sign-in is required to manage the TV system.</p>
+<div class="field"><label>Email address</label><input id="loginEmail" type="email" autocomplete="email"></div>
+<div class="field"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password"></div>
+<div class="actions"><button class="btn btn-primary" id="loginBtn">Sign in</button><button class="btn btn-dark" id="signupBtn">Create account</button></div>
+<div id="loginMessage" class="message"></div>
+</div>
+</div>
+
+<header>
+<div class="brand"><h1>1290 Wednesfield Squadron</h1><p>TV CONTROL CENTRE</p></div>
+<div class="userbar" id="userBar"><span id="userEmail"></span><button id="logoutBtn">Sign out</button></div>
+<div class="status">● SYSTEM ONLINE</div>
+</header>
+
+<main>
+<section class="welcome"><h2>Good evening.</h2><p>Manage the squadron TV system from one place.</p></section>
+
+<section class="tonight">
+<h3>TONIGHT'S STATUS</h3>
+<div class="tonight-grid">
+<div class="info"><strong>Next Parade</strong><span id="nextParade">Not set</span></div>
+<div class="info"><strong>Training</strong><span id="tonightTraining">Not set</span></div>
+<div class="info"><strong>Duty SNCO</strong><span id="dutySnco">Not set</span></div>
+<div class="info"><strong>Duty JNCO</strong><span id="dutyJnco">Not set</span></div>
+</div>
+</section>
+
+<h2 class="section-title">MANAGE THE SYSTEM</h2>
+<section class="tools">
+<div class="tool" data-panel="trainingPanel"><div class="icon">📅</div><h3>Training Plan</h3><p>Upload and manage the monthly training plan.</p></div>
+<div class="tool" data-message="Duty Cadet manager is next."><div class="icon">👥</div><h3>Duty Cadet</h3><p>Manage the duty cadet rota.</p></div>
+<div class="tool" data-message="Inter-Flight manager is next."><div class="icon">🏆</div><h3>Inter-Flight</h3><p>Manage flight points and standings.</p></div>
+<div class="tool" data-message="Uniform manager is next."><div class="icon">👕</div><h3>Uniform</h3><p>Manage uniform templates and images.</p></div>
+<div class="tool" data-message="Content Library is next."><div class="icon">✈️</div><h3>Content Library</h3><p>Manage Aircraft of the Week and Did You Know content.</p></div>
+<div class="tool" data-message="Announcements manager is next."><div class="icon">📢</div><h3>Announcements</h3><p>Create temporary ticker announcements.</p></div>
+<div class="tool" data-message="Screen Manager is next."><div class="icon">📺</div><h3>Screen Manager</h3><p>Preview and control the TV screens.</p></div>
+<div class="tool" data-message="Settings manager is next."><div class="icon">⚙️</div><h3>Settings</h3><p>Manage contacts, timings and system settings.</p></div>
+</section>
+
+<section class="checks">
+<h3>PRE-FLIGHT SYSTEM CHECK</h3>
+<div class="check-row"><span>Training plan</span><span id="checkTraining" class="waiting">CHECKING</span></div>
+<div class="check-row"><span>Duty cadet</span><span class="waiting">COMING NEXT</span></div>
+<div class="check-row"><span>Uniform</span><span class="waiting">COMING NEXT</span></div>
+<div class="check-row"><span>Content</span><span class="waiting">COMING NEXT</span></div>
+<div class="check-row"><span>Announcements</span><span class="waiting">COMING NEXT</span></div>
+<div class="check-row"><span>TV Display</span><span class="waiting">CHECKING</span></div>
+</section>
+
+<section class="panel" id="trainingPanel">
+<div class="panel-head"><div><h2>Training Plan</h2><p>Enter the training planned for each parade night.</p></div><button class="btn btn-dark" id="closeTraining">Close</button></div>
+<div id="trainingMessage" class="message"></div>
+<div class="form-grid">
+<div class="field"><label>Parade date</label><input id="trainingDate" type="date"></div>
+<div class="field"><label>Activity</label><input id="trainingActivity" type="text" placeholder="e.g. First Aid Training"></div>
+<div class="field"><label>Location</label><input id="trainingLocation" type="text" placeholder="Optional"></div>
+<div class="field"><label>Flight</label><input id="trainingFlight" type="text" placeholder="Optional"></div>
+<div class="field"><label>Start time</label><input id="trainingStart" type="time"></div>
+<div class="field"><label>End time</label><input id="trainingEnd" type="time"></div>
+<div class="field full"><label>Description / notes</label><textarea id="trainingDescription" placeholder="Optional details for staff and the TV"></textarea></div>
+</div>
+<div class="actions"><button class="btn btn-primary" id="saveTraining">Save training session</button><button class="btn btn-dark" id="clearTraining">Clear</button></div>
+<table class="training-table"><thead><tr><th>Date</th><th>Activity</th><th>Location</th><th>Flight</th><th>Time</th><th></th></tr></thead><tbody id="trainingRows"></tbody></table>
+</section>
+</main>
+
+<footer>1290 Wednesfield Squadron • RAF Air Cadets</footer>
+
+<script>
+const SUPABASE_URL='https://apisberzeduryyuuqujy.supabase.co';
+const SUPABASE_KEY='sb_publishable_RxEe8mmPIo6ZbyGVuRA45Q_zkWflvDx';
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+
+function showMessage(el,text,error=false){el.textContent=text;el.className='message show'+(error?' error':'')}
+function clearMessage(el){el.className='message';el.textContent=''}
+
+async function loadTraining(){
+const {data,error}=await supabaseClient.from('training_sessions').select('*').order('parade_date',{ascending:true}).order('start_time',{ascending:true});
+if(error){console.error(error);$('checkTraining').textContent='ERROR';$('checkTraining').className='waiting';return}
+$('checkTraining').textContent=data.length?'READY':'NOT SET';$('checkTraining').className=data.length?'ready':'waiting';
+const rows=$('trainingRows');rows.innerHTML='';
+if(!data.length){rows.innerHTML='<tr><td colspan="6" class="empty">No training sessions have been added yet.</td></tr>';return}
+data.forEach(item=>{
+const tr=document.createElement('tr');
+const date=new Date(item.parade_date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
+const time=[item.start_time,item.end_time].filter(Boolean).join('–')||'—';
+tr.innerHTML='<td>'+date+'</td><td><strong>'+escapeHtml(item.activity)+'</strong>'+(item.description?'<br><small>'+escapeHtml(item.description)+'</small>':'')+'</td><td>'+escapeHtml(item.location||'—')+'</td><td>'+escapeHtml(item.flight||'—')+'</td><td>'+time+'</td><td><button class="btn btn-danger" onclick="deleteTraining('+item.id+')">Delete</button></td>';
+rows.appendChild(tr);
+});
+updateTonight(data)
+}
+
+function updateTonight(data){
+const today=new Date();today.setHours(0,0,0,0);
+const future=data.filter(x=>new Date(x.parade_date+'T12:00:00')>=today).sort((a,b)=>a.parade_date.localeCompare(b.parade_date));
+if(!future.length){$('nextParade').textContent='Not set';$('tonightTraining').textContent='Not set';return}
+const next=future[0];
+$('nextParade').textContent=new Date(next.parade_date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+$('tonightTraining').textContent=next.activity||'Not set'
+}
+
+async function deleteTraining(id){
+if(!confirm('Delete this training session?'))return;
+const {error}=await supabaseClient.from('training_sessions').delete().eq('id',id);
+if(error){showMessage($('trainingMessage'),'Could not delete this session. Check your staff account.',true);return}
+showMessage($('trainingMessage'),'Training session deleted.');loadTraining()
+}
+window.deleteTraining=deleteTraining;
+
+async function saveTraining(){
+clearMessage($('trainingMessage'));
+const date=$('trainingDate').value,activity=$('trainingActivity').value.trim();
+if(!date||!activity){showMessage($('trainingMessage'),'Please enter a parade date and activity.',true);return}
+const payload={parade_date:date,activity:activity,description:$('trainingDescription').value.trim()||null,location:$('trainingLocation').value.trim()||null,flight:$('trainingFlight').value.trim()||null,start_time:$('trainingStart').value||null,end_time:$('trainingEnd').value||null};
+const {error}=await supabaseClient.from('training_sessions').insert(payload);
+if(error){console.error(error);showMessage($('trainingMessage'),'The training could not be saved. Make sure you are signed in with a staff account.',true);return}
+showMessage($('trainingMessage'),'Training session saved.');clearTrainingForm();loadTraining()
+}
+
+function clearTrainingForm(){
+['trainingDate','trainingActivity','trainingLocation','trainingFlight','trainingStart','trainingEnd','trainingDescription'].forEach(id=>$(id).value='')
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+
+async function checkSession(){
+const {data}=await supabaseClient.auth.getSession();
+if(data.session){$('loginOverlay').style.display='none';$('userBar').style.display='flex';$('userEmail').textContent=data.session.user.email||'Staff';loadTraining()}
+else{$('loginOverlay').style.display='flex';$('userBar').style.display='none'}
+}
+
+$('loginBtn').onclick=async()=>{
+clearMessage($('loginMessage'));
+const email=$('loginEmail').value.trim(),password=$('loginPassword').value;
+if(!email||!password){showMessage($('loginMessage'),'Enter your email address and password.',true);return}
+const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+if(error){showMessage($('loginMessage'),error.message,true);return}checkSession()
+};
+
+$('signupBtn').onclick=async()=>{
+clearMessage($('loginMessage'));
+const email=$('loginEmail').value.trim(),password=$('loginPassword').value;
+if(!email||!password){showMessage($('loginMessage'),'Enter an email address and password.',true);return}
+if(password.length<6){showMessage($('loginMessage'),'Use a password of at least 6 characters.',true);return}
+const {data,error}=await supabaseClient.auth.signUp({email,password});
+if(error){showMessage($('loginMessage'),error.message,true);return}
+if(data.session)checkSession();else showMessage($('loginMessage'),'Account created. Check your email if confirmation is required, then sign in.')
+};
+
+$('logoutBtn').onclick=async()=>{await supabaseClient.auth.signOut();checkSession()};
+$('saveTraining').onclick=saveTraining;$('clearTraining').onclick=clearTrainingForm;
+$('closeTraining').onclick=()=>{$('trainingPanel').classList.remove('active');clearMessage($('trainingMessage'))};
+
+document.querySelectorAll('.tool').forEach(tool=>{tool.onclick=()=>{if(tool.dataset.panel){$(tool.dataset.panel).classList.add('active');loadTraining();window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})}else if(tool.dataset.message)alert(tool.dataset.message)}});
+supabaseClient.auth.onAuthStateChange(()=>checkSession());
+checkSession();
+</script>
+</body>
+</html>
