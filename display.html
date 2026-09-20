@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1290 Wednesfield Squadron — Parade TV</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden}
+body{background:#071b33;color:#fff;font-family:Arial,Helvetica,sans-serif}
+:root{--navy:#071b33;--panel:#fff;--blue:#102b4a;--line:#284866;--accent:#c8102e;--muted:#b8c7d9}
+#app{height:100vh;display:flex;flex-direction:column}
+.ticker{height:58px;background:#fff;color:#071b33;border-bottom:5px solid var(--accent);display:flex;align-items:center;overflow:hidden;flex:none}
+.ticker-label{height:100%;display:flex;align-items:center;background:var(--accent);color:#071b33;font-weight:900;padding:0 24px;font-size:18px;z-index:2}
+.ticker-window{overflow:hidden;flex:1;white-space:nowrap}
+.ticker-track{display:inline-block;padding-left:100%;animation:ticker 32s linear infinite;font-size:18px;font-weight:bold}.ticker-key{color:var(--accent);font-weight:900}.ticker-value{color:var(--navy);font-weight:900}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+.clock{min-width:145px;text-align:center;font-size:22px;font-weight:bold;padding:0 18px;border-left:1px solid #d5dce4}
+.screen{flex:1;display:none;padding:46px 64px 40px;position:relative;overflow:hidden}
+.screen.active{display:block}
+.screen-title{font-size:52px;line-height:1;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.screen-subtitle{font-size:23px;color:var(--muted);margin-bottom:30px}
+.accent{height:7px;width:110px;background:var(--accent);margin-bottom:28px}
+.white-panel{background:var(--panel);color:var(--navy);border-left:9px solid var(--accent);padding:30px}
+.two-col{display:grid;grid-template-columns:1.2fr .8fr;gap:28px}
+.card{background:var(--blue);border:1px solid var(--line);padding:25px}
+.card h3{font-size:23px;margin-bottom:12px}.card p{color:var(--muted);font-size:18px;line-height:1.45}
+.big-date{font-size:42px;font-weight:900;margin-bottom:12px}
+.big-info{font-size:29px;font-weight:bold}
+.label{font-size:13px;text-transform:uppercase;color:#607086;font-weight:bold;margin-bottom:7px}
+.training-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.training-card{background:#fff;color:var(--navy);border-top:8px solid var(--accent);padding:25px;min-height:270px}
+.training-card h3{font-size:25px;margin-bottom:20px}
+.part{border-top:1px solid #d8e0e8;padding:13px 0}.part:first-of-type{border-top:0}
+.part strong{display:block;font-size:12px;text-transform:uppercase;color:#607086;margin-bottom:5px}
+.part span{font-size:21px;font-weight:bold}.instructor{font-size:15px;color:#607086;margin-top:4px}
+.dress{margin-top:22px;background:#edf2f7;padding:15px;font-weight:bold;font-size:19px}
+.info-message{font-size:26px;color:var(--muted);padding:30px 0}
+.footer{position:absolute;left:64px;right:64px;bottom:16px;display:flex;justify-content:space-between;align-items:center;color:#8295aa;font-size:14px}
+.brand-footer{font-weight:bold;color:#fff;letter-spacing:.4px}
+.crest-placeholder{width:110px;height:110px;border:2px solid #536b84;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#9db0c4;font-size:11px;text-align:center;margin-left:auto;margin-bottom:15px}
+.tonight-layout{display:grid;grid-template-columns:minmax(0,1fr) 285px;gap:20px;align-items:stretch}
+.section-kicker{font-size:13px;font-weight:900;letter-spacing:1px;color:#b8c7d9;margin-bottom:10px}
+.tonight-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.tonight-card{background:#fff;color:var(--navy);border-top:7px solid var(--accent);padding:19px;min-height:285px}
+.tonight-card h3{font-size:20px;line-height:1.15;margin-bottom:12px}
+.tonight-card .part{padding:9px 0}
+.tonight-card .part span{font-size:17px}
+.tonight-card .instructor{font-size:12px}
+.duty-card{background:var(--blue);border:1px solid var(--line);padding:21px;display:flex;flex-direction:column;justify-content:center}
+.duty-heading{font-size:18px;font-weight:900;margin-bottom:18px;color:#fff}
+.duty-item{padding:13px 0;border-top:1px solid var(--line)}
+.duty-item span{display:block;color:var(--muted);font-size:11px;font-weight:bold;text-transform:uppercase;margin-bottom:5px}
+.duty-item strong{font-size:22px;line-height:1.1}
+.duty-rule{height:5px;width:55px;background:var(--accent);margin:18px 0}
+.duty-small{color:var(--muted);font-size:14px;line-height:1.4}
+.next-layout{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:stretch}
+.next-parade-layout{display:block;width:100%}
+.next-plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;min-width:0}
+.next-plan-grid .training-card{min-height:360px;padding:24px}
+.next-plan-grid .training-card h3{font-size:24px;margin-bottom:16px}
+.next-plan-grid .training-card .part span{font-size:20px}
+.next-plan-grid .training-card .instructor{font-size:14px}
+.next-duty-card{display:none}
+
+.next-card{background:#fff;color:var(--navy);padding:35px;border-left:10px solid var(--accent);min-height:300px}
+.next-card .label{margin-top:15px}.next-card .value{font-size:30px;font-weight:900}
+.ticker-note{font-size:18px;color:#607086;margin-top:12px}
+.leaderboard{background:#fff;color:var(--navy);padding:25px;border-left:9px solid var(--accent);max-width:1000px}
+.flight-row{display:grid;grid-template-columns:80px 1fr 150px;align-items:center;padding:20px 12px;border-bottom:1px solid #d8e0e8}
+.flight-row:last-child{border-bottom:0}.rank{font-size:34px;font-weight:900}.flight-name{font-size:27px;font-weight:900}.points{font-size:28px;font-weight:900;text-align:right}
+.contact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.contact-card{background:#fff;color:var(--navy);padding:24px;border-top:7px solid var(--accent)}.contact-card h3{font-size:20px;margin-bottom:8px}.contact-card p{font-size:17px;line-height:1.45}
+.safeguard{max-width:950px;background:#fff;color:var(--navy);padding:34px;border-left:10px solid var(--accent)}.safeguard h3{font-size:29px;margin-bottom:10px}.safeguard p{font-size:20px;line-height:1.5;color:#40536a}
+.kit{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(360px,.82fr);grid-template-rows:auto auto;gap:18px;align-items:start}.kit-box{background:#fff;color:var(--navy);padding:25px;border-left:8px solid var(--accent);min-width:0;box-sizing:border-box}.kit-box:first-child{grid-row:1 / span 2}.uniform-preview{display:grid;grid-template-columns:145px minmax(0,1fr);gap:16px;align-items:start;margin-bottom:12px}.uniform-preview:last-child{margin-bottom:0}.uniform-preview img{width:145px;height:109px;object-fit:cover;border:1px solid #ccd7e3}.uniform-name{font-size:24px;font-weight:900;line-height:1.05;margin-bottom:5px}.uniform-use{font-size:15px;color:#607086;line-height:1.25;margin-bottom:7px}.uniform-detail{font-size:14px;line-height:1.3}.uniform-detail strong{display:block;font-size:10px;text-transform:uppercase;color:#607086;margin-bottom:3px}.kit-box h3{font-size:24px;margin-bottom:12px}.kit-box ul{padding-left:22px;margin:0;font-size:18px;line-height:1.5}.kit-box .info-message{font-size:17px;line-height:1.4}@media(max-width:1100px){.kit{grid-template-columns:1fr}.kit-box:first-child{grid-row:auto}.uniform-preview{grid-template-columns:140px 1fr}.uniform-preview img{width:140px;height:105px}}
+.error-banner{position:fixed;bottom:0;left:0;right:0;background:#b3261e;color:#fff;padding:10px;text-align:center;font-weight:bold;display:none;z-index:20}
+
+/* Staff & Organisation TV screen - compact 16:9 layout */
+.staff-org-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  height:calc(100% - 78px);
+  overflow:hidden;
+  padding:0 12px;
+  box-sizing:border-box;
+}
+.staff-org-level{display:flex;justify-content:center;align-items:stretch;gap:10px;width:100%;position:relative;min-height:0}
+.staff-org-level.oc{margin-top:0}
+.staff-org-level.two{max-width:720px}
+.staff-org-level.civcom{width:100%;gap:8px}
+.staff-org-card{
+  background:#fff;color:var(--navy);border:2px solid #1c4f7a;border-radius:7px;
+  min-width:0;max-width:none;box-shadow:0 3px 8px rgba(0,0,0,.14);overflow:hidden;flex:1;
+}
+.staff-org-card.oc{width:min(300px,34vw);flex:none;border-color:#c8102e}
+.staff-org-card.civcom{border-color:#c8102e}
+.staff-org-head{
+  background:#102b4a;color:#fff;font-size:13px;font-weight:900;text-transform:uppercase;
+  text-align:center;padding:6px 8px;letter-spacing:.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.staff-org-card.oc .staff-org-head,.staff-org-card.civcom .staff-org-head{background:#c8102e}
+.staff-org-body{padding:8px 10px;text-align:center;min-height:54px;box-sizing:border-box}
+.staff-org-name{font-size:17px;font-weight:900;line-height:1.05;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-org-role{font-size:11px;color:#607086;font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-org-email{font-size:10px;color:#245b8d;word-break:break-word;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-org-empty{background:#102b4a;border:1px dashed #52708e;color:#b8c7d9;padding:10px 14px;border-radius:7px;font-size:13px}
+.staff-org-connector{width:2px;height:8px;background:#7e92a7;flex:none}
+.staff-org-ci-row,.staff-org-civ-row{position:relative;width:100%;display:grid;gap:8px;min-height:0}
+.staff-org-ci-row{grid-template-columns:repeat(var(--ci-count,3),minmax(0,1fr));max-width:1500px}
+.staff-org-civ-row{grid-template-columns:repeat(var(--civ-count,4),minmax(0,1fr));max-width:1600px}
+.staff-org-ci-row:before,.staff-org-civ-row:before{content:"";position:absolute;top:-5px;left:calc(100% / (var(--ci-count,3) * 2));right:calc(100% / (var(--ci-count,3) * 2));height:2px;background:#7e92a7}
+.staff-org-civ-row:before{left:calc(100% / (var(--civ-count,4) * 2));right:calc(100% / (var(--civ-count,4) * 2));background:#c8102e}
+.staff-org-ci-row .staff-org-card,.staff-org-civ-row .staff-org-card{position:relative;width:auto;max-width:none;min-width:0}
+.staff-org-ci-row .staff-org-card:before,.staff-org-civ-row .staff-org-card:before{content:"";position:absolute;top:-5px;left:50%;width:2px;height:5px;background:#7e92a7}
+.staff-org-civ-row .staff-org-card:before{background:#c8102e}
+.staff-org-note{font-size:10px;color:var(--muted);margin-top:0}
+.staff-org-wrap.ci-many .staff-org-name,.staff-org-wrap.civ-many .staff-org-name{font-size:15px}
+.staff-org-wrap.ci-many .staff-org-head,.staff-org-wrap.civ-many .staff-org-head{font-size:11px;padding:5px 5px}
+.staff-org-wrap.ci-many .staff-org-body,.staff-org-wrap.civ-many .staff-org-body{padding:6px 6px}
+.staff-org-wrap.ci-many .staff-org-email,.staff-org-wrap.civ-many .staff-org-email{font-size:9px}
+
+@media(max-width:600px){
+.screen{padding:24px}.screen-title{font-size:34px}
+.training-grid,.contact-grid,.kit,.next-layout,.two-col,.tonight-layout,.next-parade-layout{grid-template-columns:1fr}
+.tonight-cards,.next-plan-grid{grid-template-columns:1fr}
+.footer{left:24px;right:24px}
+}
+.ticker-label-red{color:#c8102e;font-weight:800;}
+/* Ticker sizing update */
+.ticker{
+  height:110px !important;
+  min-height:110px !important;
+  padding:0 32px !important;
+  font-size:32px !important;
+}
+.ticker-label{
+  font-size:26px !important;
+}
+.ticker-track{
+  font-size:32px !important;
+  line-height:1.2 !important;
+}
+.ticker-key{
+  color:#c8102e !important;
+  font-weight:900 !important;
+}
+.ticker-value{
+  color:#071b33 !important;
+  font-weight:900 !important;
+}
+
+/* Larger parade TV clock */
+.clock{
+  font-size:42px !important;
+  line-height:1 !important;
+  font-weight:800 !important;
+}
+
+.content-display{display:grid;grid-template-columns:42% 58%;gap:24px;align-items:stretch;height:calc(100% - 120px)}.content-image{background:#fff;border-left:8px solid #c8102e;display:flex;align-items:center;justify-content:center;overflow:hidden}.content-image img{width:100%;height:100%;object-fit:cover}.content-copy{background:#fff;border-left:8px solid #c8102e;padding:34px 42px;display:flex;flex-direction:column;justify-content:center}.content-copy h2{font-size:46px;color:#071b33;margin:0 0 12px}.content-copy h3{font-size:24px;color:#58708b;margin:0 0 24px}.content-copy p{font-size:25px;line-height:1.35;color:#071b33;margin:0 0 24px}.content-source{font-size:15px;color:#607086;margin-top:auto}.content-source a{color:#c8102e}.content-noimage{grid-template-columns:1fr}.content-noimage .content-copy{min-height:430px}@media(max-width:900px){.content-display{grid-template-columns:1fr;height:auto}.content-image{height:300px}.content-copy h2{font-size:34px}.content-copy p{font-size:20px}}
+
+.duty-nco-panel{margin:18px 0 0;background:#fff;border:3px solid #c8102e;border-radius:10px;padding:16px 20px;box-shadow:0 4px 12px rgba(7,29,55,.12)}
+.duty-nco-title{font-size:20px;font-weight:900;letter-spacing:.08em;color:#c8102e;margin-bottom:10px}
+.duty-nco-row{display:grid;grid-template-columns:180px 1fr;align-items:center;padding:8px 0;border-top:1px solid #d8e0e8}
+.duty-nco-role{font-weight:800;color:#607086;text-transform:uppercase;font-size:13px}
+.duty-nco-name{font-size:24px;font-weight:900;color:#071d37}
+@media(max-width:900px){.duty-nco-row{grid-template-columns:1fr}.duty-nco-name{margin-top:3px}}
+
+</style>
+</head>
+<body>
+<div id="app">
+<div class="ticker">
+<div class="ticker-label">1290 WEDNESFIELD</div>
+<div class="ticker-window"><div class="ticker-track" id="tickerText">1290 Wednesfield Squadron</div></div>
+<div class="clock" id="clock">--:--</div>
+</div>
+
+<section class="screen active" id="screen0">
+<div class="screen-title">Tonight’s Programme</div>
+<div class="screen-subtitle" id="programmeDate">Loading next parade...</div>
+<div class="accent"></div>
+<div class="tonight-layout">
+<div>
+<div class="section-kicker">TONIGHT'S TRAINING</div>
+<div id="tonightCards" class="tonight-cards"></div>
+</div>
+<div class="duty-card">
+<div class="duty-heading">DUTY NCO’S</div>
+<div class="duty-item"><span>SNCO</span><strong id="programmeSnco">Not set</strong></div>
+<div class="duty-item"><span>JNCO</span><strong id="programmeJnco">Not set</strong></div>
+
+</div>
+</div>
+
+</section>
+
+<section class="screen" id="screen1">
+<div class="screen-title">Next Parade Night</div>
+<div class="duty-nco-panel">
+  <div class="duty-nco-title">DUTY NCO’S</div>
+  <div class="duty-nco-row">
+    <div class="duty-nco-role">Duty SNCO</div>
+    <div class="duty-nco-name" id="nextParadeDutySnco">Loading…</div>
+  </div>
+  <div class="duty-nco-row">
+    <div class="duty-nco-role">Duty JNCO</div>
+    <div class="duty-nco-name" id="nextParadeDutyJnco">Loading…</div>
+  </div>
+</div>
+<div class="screen-subtitle" id="nextPlanDate">Get ready for the next parade</div>
+<div class="accent"></div>
+<div class="next-parade-layout">
+  <div id="nextPlanCards" class="next-plan-grid"></div>
+</div>
+
+</section>
+
+<section class="screen" id="screen2">
+<div class="screen-title">Did You Know?</div>
+<div class="screen-subtitle">A fact from the world of the RAF and Air Cadets</div><div class="accent"></div>
+<div class="content-display" id="didYouKnowContent"><div class="info-message">Loading approved content...</div></div>
+
+</section>
+
+<section class="screen" id="screen3">
+<div class="screen-title">Aircraft of the Week</div>
+<div class="screen-subtitle">Learn about aircraft used by the RAF and Air Cadets</div><div class="accent"></div>
+<div class="content-display" id="aircraftContent"><div class="info-message">Loading approved content...</div></div>
+
+</section>
+
+<section class="screen" id="screen4">
+<div class="screen-title">Squadron Contacts</div>
+<div class="screen-subtitle">Need help? Speak to a member of staff.</div><div class="accent"></div>
+<div class="contact-grid">
+<div class="contact-card"><h3>Officer Commanding</h3><p>Plt Off Dan Morris<br>oc.1290@rafac.mod.gov.uk</p></div>
+<div class="contact-card"><h3>Training Officer / Squadron SNCO</h3><p>SGT Nae Dos Santos</p></div>
+<div class="contact-card"><h3>Adjutant</h3><p>CI Sarah Morris<br>adj.1290@rafac.mod.gov.uk</p></div>
+<div class="contact-card"><h3>Civilian Committee Chair</h3><p>Mrs Anna Pleskacz<br>chair.1290@rafac.mod.gov.uk</p></div>
+<div class="contact-card"><h3>General Contact Details</h3><p>01902 307 800<br>23 Halecroft Ave, Wednesfield, WV11 1TS<br>Monday &amp; Wednesday • 19:00–21:30</p></div>
+</div>
+
+</section>
+
+<section class="screen" id="screen5">
+<div class="screen-title">Inter-Flight Leaderboard</div>
+<div class="screen-subtitle">Points and standings</div><div class="accent"></div>
+<div class="leaderboard" id="leaderboard"></div>
+
+</section>
+
+<section class="screen" id="screen6">
+<div class="screen-title">Safeguarding</div>
+<div class="screen-subtitle">It’s OK to talk.</div><div class="accent"></div>
+<div class="safeguard">
+<h3>If something is worrying you, speak to a member of staff.</h3>
+<p>You can talk to someone you trust about anything that is making you feel uncomfortable, worried or unsafe. We will add the squadron safeguarding contacts here before final publication.</p>
+</div>
+
+</section>
+
+
+<section class="screen" id="screen7">
+<div class="screen-title">Staff &amp; Organisation</div>
+<div class="screen-subtitle">Our current squadron staff structure</div>
+<div class="accent"></div>
+<div class="staff-org-wrap" id="staffOrganisationDisplay">
+  <div class="staff-org-level oc" id="staffOrgOc"></div>
+  <div class="staff-org-connector"></div>
+  <div class="staff-org-level two" id="staffOrgSecond"></div>
+  <div class="staff-org-connector"></div>
+  <div class="staff-org-ci-row" id="staffOrgCis"></div>
+  <div class="staff-org-connector"></div>
+  <div class="staff-org-civ-row" id="staffOrgCivcom"></div>
+  <div class="staff-org-note">Only active staff are shown.</div>
+</div>
+</section>
+
+<section class="screen" id="screen8">
+<div class="screen-title">Next Parade Night</div>
+<div class="screen-subtitle">Uniform &amp; Kit</div><div class="accent"></div>
+<div class="kit">
+<div class="kit-box"><h3>Uniform</h3><div id="uniformText" class="info-message">Uniform information will be added through the Uniform manager.</div></div>
+<div class="kit-box"><h3>Essential Kit</h3><ul><li>Water bottle</li><li>Notebook &amp; pen</li><li>Weather appropriate layers</li><li>We might be working outside – bring suitable clothing</li></ul></div>
+<div class="kit-box"><h3>Reminders</h3><div id="remindersList" class="info-message">No reminders currently active.</div></div>
+</div>
+
+</section>
+</div>
+<div class="error-banner" id="errorBanner">Unable to load live squadron data.</div>
+
+<script>
+const SUPABASE_URL='https://apisberzeduryyuuqujy.supabase.co';
+const SUPABASE_KEY='sb_publishable_RxEe8mmPIo6ZbyGVuRA45Q_zkWflvDx';
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let trainingData=[];
+let dutyData=[];
+let announcements=[];
+let contentLibrary=[];
+let flightData=[];
+let uniformAssignments=[];
+let staffData=[];
+window.uniformLibrary=[];
+let currentScreen=0;
+const screens=[...document.querySelectorAll('.screen')];
+const defaultRotation=[
+ {id:'tonight',screenIndex:0,duration_seconds:12,display_order:1,enabled:true},
+ {id:'next_parade',screenIndex:1,duration_seconds:12,display_order:2,enabled:true},
+ {id:'did_you_know',screenIndex:2,duration_seconds:12,display_order:3,enabled:true},
+ {id:'aircraft',screenIndex:3,duration_seconds:12,display_order:4,enabled:true},
+ {id:'contacts',screenIndex:4,duration_seconds:12,display_order:5,enabled:true},
+ {id:'leaderboard',screenIndex:5,duration_seconds:12,display_order:6,enabled:true},
+ {id:'safeguarding',screenIndex:6,duration_seconds:12,display_order:7,enabled:true},
+ {id:'staff_org',screenIndex:7,duration_seconds:12,display_order:8,enabled:true},
+ {id:'uniform',screenIndex:8,duration_seconds:12,display_order:9,enabled:true}
+];
+let rotationSettings=[...defaultRotation];
+let rotationTimer=null;
+let globalTvSettings={};
+
+async function loadGlobalTvSettings(){
+ const {data,error}=await supabaseClient.from('tv_settings').select('*');
+ if(error){console.warn('TV settings unavailable; using defaults.',error.message);return}
+ const s={};
+ (data||[]).forEach(r=>{
+   if(r.value_boolean!==null&&r.value_boolean!==undefined)s[r.id]=r.value_boolean;
+   else if(r.value_number!==null&&r.value_number!==undefined)s[r.id]=Number(r.value_number);
+   else s[r.id]=r.value_text??'';
+ });
+ globalTvSettings=s;
+ const ticker=document.querySelector('.ticker');
+ const clock=document.querySelector('.clock');
+ if(ticker)ticker.style.display=s.show_ticker===false?'none':'';
+ if(clock)clock.style.display=s.show_clock===false?'none':'';
+}
+async function loadRotationSettings(){
+ const {data,error}=await supabaseClient.from('screen_settings').select('id,enabled,duration_seconds,display_order').order('display_order',{ascending:true});
+ if(error){
+   console.warn('Screen Manager unavailable; using default rotation.',error.message);
+   rotationSettings=[...defaultRotation];
+ }else{
+   const byId=new Map((data||[]).map(x=>[x.id,x]));
+   rotationSettings=defaultRotation.map(d=>({...d,...(byId.get(d.id)||{})}))
+     .filter(x=>x.enabled!==false)
+     .sort((a,b)=>(Number(a.display_order)||0)-(Number(b.display_order)||0));
+   if(!rotationSettings.length)rotationSettings=[...defaultRotation];
+ }
+ startRotation();
+}
+function startRotation(){
+ if(rotationTimer)clearTimeout(rotationTimer);
+ currentScreen=0;
+ screens.forEach(s=>s.classList.remove('active'));
+ const first=rotationSettings[0];
+ if(!first||!screens[first.screenIndex])return;
+ screens[first.screenIndex].classList.add('active');
+ const advance=()=>{
+   if(!rotationSettings.length)return;
+   screens.forEach(s=>s.classList.remove('active'));
+   currentScreen=(currentScreen+1)%rotationSettings.length;
+   const next=rotationSettings[currentScreen];
+   if(next&&screens[next.screenIndex])screens[next.screenIndex].classList.add('active');
+   const seconds=Math.max(5,Number(next?.duration_seconds)||Number(globalTvSettings.default_screen_duration)||12);
+   rotationTimer=setTimeout(advance,seconds*1000);
+ };
+ const seconds=Math.max(5,Number(first.duration_seconds)||Number(globalTvSettings.default_screen_duration)||12);
+ rotationTimer=setTimeout(advance,seconds*1000);
+}
+
+
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function meta(item){try{return JSON.parse(item.description||'{}')}catch(e){return {}}}
+function dateObj(s){return new Date(s+'T12:00:00')}
+function todayStart(){const d=new Date();d.setHours(0,0,0,0);return d}
+function paradeDateForWeekday(baseDate, targetWeekday){
+ const d=new Date(baseDate); d.setHours(12,0,0,0);
+ const current=d.getDay(); const diff=(targetWeekday-current+7)%7;
+ return new Date(d.getTime()+diff*86400000);
+}
+function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+// Parade nights are Monday (1) and Wednesday (3).
+// On a parade night, today is the current parade. Otherwise the current parade is the closer upcoming Monday/Wednesday.
+function currentParadeDate(){
+ const now=new Date(); now.setHours(12,0,0,0); const day=now.getDay();
+ if(day===1||day===3)return isoDate(now);
+ const monday=paradeDateForWeekday(now,1), wednesday=paradeDateForWeekday(now,3);
+ return isoDate(monday.getTime()<=wednesday.getTime()?monday:wednesday);
+}
+function followingParadeDate(currentIso){
+ const current=dateObj(currentIso), next=new Date(current);
+ next.setDate(next.getDate()+(current.getDay()===1?2:5));
+ return isoDate(next);
+}
+function nextDate(){return currentParadeDate()}
+function entriesFor(date){return trainingData.filter(x=>x.parade_date===date)}
+function dutyFor(date){return dutyData.filter(x=>x.parade_date===date)[0]||null}
+
+function renderStaffOrganisation(){
+  const wrap=document.getElementById('staffOrganisationDisplay');
+  const ocBox=document.getElementById('staffOrgOc');
+  const secondBox=document.getElementById('staffOrgSecond');
+  const ciBox=document.getElementById('staffOrgCis');
+  const civBox=document.getElementById('staffOrgCivcom');
+  if(!wrap||!ocBox||!secondBox||!ciBox||!civBox)return;
+  const active=staffData.filter(x=>x.active!==false);
+  const first=(key)=>active.filter(x=>x.position_key===key).sort((a,b)=>((Number(a.display_order)||0)-(Number(b.display_order)||0))||String(a.name||'').localeCompare(String(b.name||'')));
+  const card=(x,label,cls='')=>`<div class="staff-org-card ${cls}"><div class="staff-org-head">${escapeHtml(label)}</div><div class="staff-org-body"><div class="staff-org-name">${escapeHtml(x.name||'Not set')}</div><div class="staff-org-role">${escapeHtml(label)}</div>${x.email?`<div class="staff-org-email">${escapeHtml(x.email)}</div>`:''}</div></div>`;
+  const oc=first('OC')[0], adjs=first('ADJ'), sncos=first('SNCO'), cis=first('CI');
+  const civRoles=['CIVCOM','CIVCOM_SEC','CIVCOM_TREAS','CIVCOM_MEMBER'];
+  const civLabels={CIVCOM:'Civilian Committee Chair',CIVCOM_SEC:'CivCom Secretary',CIVCOM_TREAS:'CivCom Treasurer',CIVCOM_MEMBER:'CivCom Member'};
+  const civcom=civRoles.flatMap(key=>first(key).map(x=>card(x,civLabels[key],'civcom')));
+
+  wrap.classList.toggle('ci-many',cis.length>3);
+  wrap.classList.toggle('civ-many',civcom.length>4);
+  ciBox.style.setProperty('--ci-count',Math.max(1,cis.length));
+  civBox.style.setProperty('--civ-count',Math.max(1,civcom.length));
+  ocBox.innerHTML=oc?card(oc,'Officer Commanding','oc'):'<div class="staff-org-empty">Officer Commanding not yet set</div>';
+  secondBox.innerHTML=[...adjs.map(x=>card(x,'Adjutant')), ...sncos.map(x=>card(x,'Squadron SNCO'))].join('') || '<div class="staff-org-empty">No active Adjutant or Squadron SNCO listed</div>';
+  ciBox.innerHTML=cis.length?cis.map(x=>card(x,'Squadron CI')).join(''):'<div class="staff-org-empty">No active Squadron CIs listed</div>';
+  civBox.innerHTML=civcom.length?civcom.join(''):'<div class="staff-org-empty">No active Civilian Committee staff listed</div>';
+}
+function renderFlights(){
+const box=document.getElementById('leaderboard');
+if(!box)return;
+if(!flightData.length){box.innerHTML='<div class="info-message">Flight standings have not been set up yet.</div>';return}
+const ordered=[...flightData].filter(x=>x.active!==false).sort((a,b)=>Number(b.points||0)-Number(a.points||0));
+box.innerHTML=ordered.map((x,i)=>'<div class="flight-row"><div class="rank">'+(i+1)+'</div><div class="flight-name">'+escapeHtml(x.flight_name)+'</div><div class="points">'+Number(x.points||0)+' pts</div></div>').join('');
+}
+
+function updateDisplay(){
+const next=nextDate();
+const nextScreenDate=nextParadeAfterToday()||next;
+if(!next){
+['programmeDate','nextPlanDate'].forEach(id=>document.getElementById(id).textContent='No parade dates loaded');
+return
+}
+const d=dateObj(next),pretty=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const nd=dateObj(nextScreenDate),nextPretty=nd.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const entries=entriesFor(next),duty=dutyFor(next);
+const nextDuty=dutyFor(nextScreenDate);
+document.getElementById('programmeDate').textContent=pretty;
+document.getElementById('nextPlanDate').textContent=nextPretty;
+document.getElementById('programmeSnco').textContent=duty?.duty_snco||'Not set';
+document.getElementById('programmeJnco').textContent=duty?.duty_jnco||'Not set';
+
+// Duty NCOs shown on the NEXT PARADE NIGHT screen must belong to the
+// next parade after the current parade, not today's/current parade.
+const nextDutySnco=document.getElementById('nextParadeDutySnco');
+const nextDutyJnco=document.getElementById('nextParadeDutyJnco');
+if(nextDutySnco) nextDutySnco.textContent=nextDuty?.duty_snco||'Not assigned';
+if(nextDutyJnco) nextDutyJnco.textContent=nextDuty?.duty_jnco||'Not assigned';
+
+const groups={};
+entries.forEach(x=>{const m=meta(x),g=x.flight||m.group||'Training';if(!groups[g])groups[g]=[];groups[g].push({m,x})});
+const summary=Object.entries(groups).map(([g,a])=>g+': '+a.map(v=>v.m.part1||v.x.activity||'Training').join(' / ')).join(' • ');
+const cards=document.getElementById('tonightCards');
+cards.innerHTML='';
+const groupOrder=['Junior & First Class Cadets','Leading Cadets','Senior & Master Cadets'];
+Object.entries(groups).sort((a,b)=>{
+const ai=groupOrder.indexOf(a[0]), bi=groupOrder.indexOf(b[0]);
+return (ai<0?99:ai)-(bi<0?99:bi);
+}).forEach(([g,a])=>{
+const card=document.createElement('div');card.className='tonight-card';
+let h='<h3>'+escapeHtml(g)+'</h3>';
+a.forEach(v=>{
+const m=v.m,x=v.x;
+h+='<div class="part"><strong>Part 1</strong><span>'+escapeHtml(m.part1||x.activity||'—')+'</span>'+(m.instructor1?'<div class="instructor">'+escapeHtml(m.instructor1)+'</div>':'')+'</div>';
+if(m.part2)h+='<div class="part"><strong>Part 2</strong><span>'+escapeHtml(m.part2)+'</span>'+(m.instructor2?'<div class="instructor">'+escapeHtml(m.instructor2)+'</div>':'')+'</div>';
+});
+const dresses=[...new Set(a.map(v=>v.m.dress).filter(Boolean))];
+if(dresses.length)h+='<div class="dress">Dress: '+escapeHtml(dresses.join(' / '))+'</div>';
+card.innerHTML=h;cards.appendChild(card)
+});
+if(!entries.length)cards.innerHTML='<div class="white-panel"><div class="info-message">No training set for this parade night.</div></div>';
+const nextEntries=entriesFor(nextScreenDate);
+const nextGroups={};
+nextEntries.forEach(x=>{const m=meta(x),g=x.flight||m.group||'Training';if(!nextGroups[g])nextGroups[g]=[];nextGroups[g].push({m,x})});
+const nextCards=document.getElementById('nextPlanCards');
+nextCards.innerHTML='';
+Object.entries(nextGroups).sort((a,b)=>{
+const ai=groupOrder.indexOf(a[0]), bi=groupOrder.indexOf(b[0]);
+return (ai<0?99:ai)-(bi<0?99:bi);
+}).forEach(([g,a])=>{
+const card=document.createElement('div');card.className='training-card';
+let h='<h3>'+escapeHtml(g)+'</h3>';
+a.forEach(v=>{
+const m=v.m,x=v.x;
+h+='<div class="part"><strong>Part 1</strong><span>'+escapeHtml(m.part1||x.activity||'—')+'</span>'+(m.instructor1?'<div class="instructor">'+escapeHtml(m.instructor1)+'</div>':'')+'</div>';
+if(m.part2)h+='<div class="part"><strong>Part 2</strong><span>'+escapeHtml(m.part2)+'</span>'+(m.instructor2?'<div class="instructor">'+escapeHtml(m.instructor2)+'</div>':'')+'</div>';
+});
+const dresses=[...new Set(a.map(v=>v.m.dress).filter(Boolean))];
+if(dresses.length)h+='<div class="dress">Dress: '+escapeHtml(dresses.join(' / '))+'</div>';
+card.innerHTML=h;nextCards.appendChild(card)
+});
+if(!nextEntries.length)nextCards.innerHTML='<div class="white-panel"><div class="info-message">No training set for this parade night.</div></div>';
+
+
+const uniformBox=document.getElementById('uniformText');
+const nextUniforms=uniformAssignments.filter(x=>x.parade_date===next);
+const groupLabels={junior:'Junior & First Class Cadets',leading:'Leading Cadets',senior:'Senior & Master Cadets'};
+const uniformLibrary=window.uniformLibrary||[];
+function uniformKey(value){
+ return String(value||'').toLowerCase().replace(/&/g,'and').replace(/number/g,'no').replace(/uniform/g,'').replace(/[^a-z0-9]/g,'');
+}
+function findUniformMatch(value){
+ const raw=String(value||'').trim(); if(!raw)return null;
+ const key=uniformKey(raw);
+ let hit=uniformLibrary.find(u=>uniformKey(u.name)===key);
+ if(hit)return hit;
+ const aliases={no2a:['2a','no2a','number2a','no2auniform'],no2c:['2c','no2c','number2c','no2cuniform'],no3:['3','no3','number3','number3uniform'],sportskit:['sports','sportskit','sportswear','physicaltraining']};
+ for(const [canonical,keys] of Object.entries(aliases)){
+   if(keys.includes(key)) return uniformLibrary.find(u=>uniformKey(u.name)===canonical)||null;
+ }
+ return null;
+}
+function uniformDisplayHtml(u,label){
+ const image=u.image_url?'<img src="'+escapeHtml(u.image_url)+'" alt="">':'';
+ const details=(Array.isArray(u.essential_kit)&&u.essential_kit.length)?'<div class="uniform-detail"><strong>Essential kit</strong>'+escapeHtml(u.essential_kit.join(' • '))+'</div>':'';
+ return '<div class="uniform-preview">'+image+'<div><div class="label">'+escapeHtml(label)+'</div><div class="uniform-name">'+escapeHtml(u.name)+'</div><div class="uniform-use">'+escapeHtml(u.used_for||'')+'</div>'+details+'</div></div>';
+}
+let resolvedUniforms=[];
+if(nextUniforms.length){
+ nextUniforms.forEach(x=>{const u=x.uniforms||findUniformMatch(x.uniform_id);if(u?.name)resolvedUniforms.push({group:x.group_key,u,explicit:true})});
+}else{
+ // Smart fallback: use the dress text from the training plan and match it to the Uniform Library,
+ // ignoring case, spaces, punctuation and common wording such as “No.” / “Number” / “uniform”.
+ const seen=new Set();
+ entries.forEach(x=>{const m=meta(x);const u=findUniformMatch(m.dress);if(u){const k=(x.flight||m.group||'training')+'|'+u.id;if(!seen.has(k)){seen.add(k);resolvedUniforms.push({group:x.flight||m.group||'Training',u,explicit:false})}}});
+}
+if(uniformBox){
+ if(resolvedUniforms.length){
+   uniformBox.innerHTML=resolvedUniforms.map(r=>uniformDisplayHtml(r.u,groupLabels[r.group]||r.group)).join('<div style="height:14px"></div>');
+   uniformBox.dataset.ticker=resolvedUniforms.map(r=>r.u.name).filter((v,i,a)=>a.indexOf(v)===i).join(' / ');
+ } else {
+   const fallback=[...new Set(entries.map(x=>meta(x).dress).filter(Boolean))];
+   uniformBox.innerHTML=fallback.length?'<div class="uniform-name">'+escapeHtml(fallback.join(' / '))+'</div><div class="uniform-use">No matching Uniform Library entry yet.</div>':'Uniform information will be added through the Uniform manager.';
+   uniformBox.dataset.ticker=fallback.join(' / ');
+ }
+}
+
+const tickerParts=[];
+tickerParts.push('<span class="ticker-key">Duty SNCO:</span> <span class="ticker-value">'+escapeHtml(duty?.duty_snco||'Not set')+'</span>');
+tickerParts.push('<span class="ticker-key">Duty JNCO:</span> <span class="ticker-value">'+escapeHtml(duty?.duty_jnco||'Not set')+'</span>');
+
+let uniform=document.getElementById('uniformText').dataset.ticker||'';
+if(!uniform){
+const tickerDresses=[...new Set(entries.map(x=>meta(x).dress).filter(Boolean))];
+uniform=tickerDresses.length?tickerDresses.join(' / '):'Not set';
+}
+tickerParts.push('<span class="ticker-key">Next Parade Night Uniform:</span> <span class="ticker-value">'+escapeHtml(uniform)+'</span>');
+
+if(announcements.length){
+announcements.forEach(a=>{
+  if(a.message) tickerParts.push('<span class="ticker-key">Announcements:</span> <span class="ticker-value">'+escapeHtml(a.message||a.title||'')+'</span>');
+});
+}else{
+tickerParts.push('<span class="ticker-key">Announcements:</span> <span class="ticker-value">No current announcements</span>');
+}
+document.getElementById('tickerText').innerHTML = tickerParts.join('   •   ')+'   •   ';
+const reminderBox=document.getElementById('remindersList');
+if(reminderBox){
+if(announcements.length){
+reminderBox.innerHTML=announcements.map(a=>'<div style="padding:12px 0;border-bottom:1px solid #d8e0e8;font-size:19px;font-weight:bold">'+escapeHtml(a.message||a.title||'')+'</div>').join('');
+}else reminderBox.textContent='No reminders currently active.'
+}
+}
+
+function renderContentLibrary(){
+ const render=(id,type,empty)=>{const box=document.getElementById(id);if(!box)return;const items=contentLibrary.filter(x=>x.content_type===type&&x.approved!==false&&x.active!==false);if(!items.length){box.innerHTML='<div class="content-copy content-noimage"><div class="info-message">'+empty+'</div></div>';return}items.sort((a,b)=>{const la=a.last_used_at?new Date(a.last_used_at).getTime():0;const lb=b.last_used_at?new Date(b.last_used_at).getTime():0;return (la-lb)||(Number(a.display_order||0)-Number(b.display_order||0))});const x=items[0];box.className='content-display'+(x.image_url?'':' content-noimage');const image=x.image_url?'<div class="content-image"><img src="'+escapeHtml(x.image_url)+'" alt=""></div>':'';const source=x.source_name?'<div class="content-source">Source: <strong>'+escapeHtml(x.source_name)+'</strong>'+(x.source_url?' · <a href="'+escapeHtml(x.source_url)+'" target="_blank" rel="noopener">Official source</a>':'')+'</div>':'';box.innerHTML=image+'<div class="content-copy"><h2>'+escapeHtml(x.title)+'</h2>'+(x.subtitle?'<h3>'+escapeHtml(x.subtitle)+'</h3>':'')+'<p>'+escapeHtml(x.body)+'</p>'+source+'</div>'};
+ render('didYouKnowContent','did_you_know','No approved Did You Know content is currently available.');
+ render('aircraftContent','aircraft','No approved Aircraft of the Week content is currently available.');
+}
+
+
+function nextParadeAfterToday(){return followingParadeDate(currentParadeDate())}
+
+
+
+async function loadLiveData(){
+const [training,duty,ann,flight,uniforms,uniformsLibrary,content,staff]=await Promise.all([
+supabaseClient.from('training_sessions').select('*').order('parade_date',{ascending:true}),
+supabaseClient.from('duty_rota').select('*').order('parade_date',{ascending:true}),
+supabaseClient.from('announcements').select('id,message,start_date,end_date,priority,active,created_at').eq('active',true).lte('start_date',new Date().toISOString().slice(0,10)).gte('end_date',new Date().toISOString().slice(0,10)).order('priority',{ascending:false}).order('created_at',{ascending:false}),
+supabaseClient.from('flight_standings').select('*').eq('active',true).order('display_order',{ascending:true}),
+supabaseClient.from('parade_uniforms').select('parade_date,group_key,uniform_id,uniforms(name,used_for,essential_kit,reminders,image_url)').order('parade_date',{ascending:true}),
+supabaseClient.from('uniforms').select('id,name,used_for,essential_kit,reminders,image_url').eq('active',true).order('name'),
+supabaseClient.from('content_library').select('*').eq('approved',true).eq('active',true).order('display_order').order('title'),
+supabaseClient.from('staff_members').select('id,position_key,name,email,phone,active,display_order').eq('active',true).order('position_key').order('display_order').order('name')
+]);
+let failed=false;
+if(training.error){console.error('Training:',training.error);failed=true}else trainingData=training.data||[];
+if(duty.error){console.error('Duty:',duty.error);failed=true}else dutyData=duty.data||[];
+if(ann.error){console.error('Announcements query failed:',ann.error);announcements=[]}
+else {
+announcements=ann.data||[];
+}
+if(flight.error){console.warn('Inter-Flight is not available yet:',flight.error.message);flightData=[]}else flightData=flight.data||[];
+if(uniforms.error){console.warn('Uniform Manager is not available yet:',uniforms.error.message);uniformAssignments=[]}else uniformAssignments=uniforms.data||[];
+if(uniformsLibrary.error){console.warn('Uniform Library is not available yet:',uniformsLibrary.error.message);window.uniformLibrary=[]}else window.uniformLibrary=uniformsLibrary.data||[];
+if(content.error){console.warn('Content Library is not available yet:',content.error.message);contentLibrary=[]}else contentLibrary=content.data||[];
+if(staff.error){console.warn('Staff & Organisation is not available yet:',staff.error.message);staffData=[]}else staffData=staff.data||[];
+renderContentLibrary();
+renderStaffOrganisation();
+renderFlights();
+document.getElementById('errorBanner').style.display=(training.error||duty.error)?'block':'none';
+updateDisplay()
+}
+
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+updateClock();setInterval(updateClock,1000);
+loadGlobalTvSettings();
+loadRotationSettings();
+loadLiveData();
+setInterval(loadLiveData,60000);
+setInterval(loadGlobalTvSettings,60000);
+setInterval(loadRotationSettings,60000);
+</script>
+</body>
+</html>
